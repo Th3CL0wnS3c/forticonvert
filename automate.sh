@@ -7,3 +7,5 @@ bash forticonvert.sh -rtr csv_input/routes.csv scripts_output/routes-script.txt
 bash forticonvert.sh -r csv_input/rules.csv scripts_output/rules-script.txt
 bash forticonvert.sh -z csv_input/zones.csv scripts_output/zones-script.txt
 bash forticonvert.sh -s csv_input/services.csv scripts_output/services-script.txt
+
+echo "test" > /dev/null
