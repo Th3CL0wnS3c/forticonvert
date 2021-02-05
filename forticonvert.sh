@@ -12,16 +12,32 @@ help()
 	echo -e " forticonvert.sh { --zones | -z } input_zones-csv output-result.txt  ==> Convert CSV file containing Forti Zones to script configuration file\n"
 	echo -e " forticonvert.sh { --routes | -rtr } input_routes-csv output-result.txt  ==> Convert CSV file containing Forti Static Routes to script configuration file\n"
 	echo -e " forticonvert.sh { --service | -s } input_services-csv output-result.txt  ==> Convert CSV file containing Forti Custom Services to script configuration file\n\n"
+}
 
-
-
+define-vdom()
+{
+	if [ ! -z $vdomoption ];then
+		echo "vdom option activated" > /dev/null
+		eval enablevdom="1"
+	else
+		echo "no vdom" > /dev/null
+		eval enablevdom="0"
+	fi
 }
 
 convert-object() 
 {
-	echo "config firewall address" > $dstfile
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config firewall address" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall address" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi	
 	IFS=";"
-	while read f1 f2 f3 #f4
+	sed '1d' $srcfile | while read f1 f2 f3 #f4
 	do
 		case $f1 in
 			"subnet"|"host")
@@ -49,15 +65,23 @@ convert-object()
 			*)
 				echo "$f1 is a Bad type, object not converted" > /dev/null;;
 		esac	
-	done < $srcfile
+	done
 	echo "end" >> $dstfile
 }
 
 convert-services() 
 {
-	echo "config firewall service custom" > $dstfile
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config firewall service custom" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall service custom" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
 	IFS=";"
-	while read f1 f2 f3
+	sed '1d' $srcfile | while read f1 f2 f3
 	do
 		echo "edit $f1"  >> $dstfile
 		echo "set protocol TCP/UDP/SCTP" >> $dstfile
@@ -69,16 +93,23 @@ convert-services()
 			echo "Value not available" > /dev/null
 		fi
 		echo "next" >> $dstfile
-	done < $srcfile
+	done
 	echo "end" >> $dstfile
-	sed -i '2,5d' $dstfile
 }
 
 convert-rules()
 {
-	echo "config firewall policy" > $dstfile
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config firewall policy" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall policy" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
 	IFS=";"
-	while read f1 f2 f3 f4 f5 f6 f7 f8 f9 f10
+	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6 f7 f8 f9 f10
 	do
 		echo "	edit $f1"  >> $dstfile
 		echo "		set srcintf $f2" >> $dstfile
@@ -100,16 +131,23 @@ convert-rules()
 		fi
 		echo "		set action $f10" >> $dstfile
 		echo "		next" >> $dstfile
-	done < $srcfile
+	done
 	echo "end" >> $dstfile
-	sed -i '2,10d' $dstfile
 }
 
 convert-interfaces()
 {
-	echo "config system interface" > $dstfile
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config system interface" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config system interface" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
 	IFS=";"
-	while read f1 f2 f3 f4 f5 f6 f7
+	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6 f7
 	do
 		case $f1 in 
 			"interface")
@@ -135,68 +173,92 @@ convert-interfaces()
 				echo "$f1 is a Bad type, interface not converted"> /dev/null;;
 		esac
 
-	done < $srcfile
+	done
 	echo "end" >> $dstfile
 }
 
 convert-ippools()
 {
-	echo "config firewall ippool" > $dstfile
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config firewall ippool" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall ippool" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
 	IFS=";"
-	while read f1 f2 f3 f4 f5 f6 
+	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6 
 	do
-		echo "	edit $f1"  >> $dstfile
-		echo "		set type $f2" >> $dstfile
-		echo "		set startip $f3" >> $dstfile
-		echo "		set endip $f4" >> $dstfile
+		echo "edit $f1"  >> $dstfile
+		echo "set type $f2" >> $dstfile
+		echo "set startip $f3" >> $dstfile
+		echo "set endip $f4" >> $dstfile
 		if [ "$f2" == "fixed-port-range" ];then
-			echo "		set source-startip $f5" >> $dstfile
-			echo "		set source-endip $f6" >> $dstfile
+			echo "set source-startip $f5" >> $dstfile
+			echo "set source-endip $f6" >> $dstfile
 		else
 			echo "Not fixed-port-range, nothing else to do" > /dev/null
 		fi
-		echo "		next" >> $dstfile
-	done < $srcfile
+		echo "next" >> $dstfile
+	done
 	echo "end" >> $dstfile
-	sed -i '2,6d' $dstfile	
 }
 
  convert-zones()
 {
-	echo "config system zone" > $dstfile
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config system zone" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config system zone" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
 	IFS=";"
-	while read f1 f2 f3  
+	sed '1d' $srcfile | while read f1 f2 f3  
 	do
-		echo "	edit $f1"  >> $dstfile
-		echo "		set interface $f2" >> $dstfile
-		echo "		set intrazone $f3" >> $dstfile
-		echo "		next" >> $dstfile
-		done < $srcfile
-		echo "end" >> $dstfile
-		sed -i '2,5d' $dstfile	
+		echo "edit $f1"  >> $dstfile
+		echo "set interface $f2" >> $dstfile
+		echo "set intrazone $f3" >> $dstfile
+		echo "next" >> $dstfile
+		done
+		echo "end" >> $dstfile	
 }
 
 convert-routes()
 {
-	echo "config router static" > $dstfile
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config router static" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config router static" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
 	IFS=";"
-	while read f1 f2 f3 f4 f5 f6
+	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6
 	do
-		echo "	edit $f1"  >> $dstfile
-		echo "		set dst $f2" >> $dstfile
-		echo "		set gateway $f3" >> $dstfile
-		echo "		set device $f4" >> $dstfile
-		echo "		set distance $f5" >> $dstfile
-		echo "		set priority $f6" >> $dstfile
-		echo "		next" >> $dstfile
-		done < $srcfile
+		echo "edit $f1"  >> $dstfile
+		echo "set dst $f2" >> $dstfile
+		echo "set gateway $f3" >> $dstfile
+		echo "set device $f4" >> $dstfile
+		echo "set distance $f5" >> $dstfile
+		echo "set priority $f6" >> $dstfile
+		echo "next" >> $dstfile
+		done
 		echo "end" >> $dstfile
-		sed -i '2,8d' $dstfile
 }
 
 srcfile=$2
 dstfile=$3
+vdomoption=$4
+vdomname=$5
 
+define-vdom
 case $1 in
 	--help|-h) help;;
 	--object|-o) convert-object;;
