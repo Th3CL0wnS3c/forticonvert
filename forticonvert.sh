@@ -5,10 +5,11 @@ help()
 	echo -e "\nForticonvert is a shell tool used to convert csv files containing objects,rules or interfaces to fortigate script configuration format\n"
 	echo -e "Usage : \n"
 	echo -e " forticonvert.sh { -help | -h }  ==> Display this help\n"
-	echo -e " forticonvert.sh { --object | -o} input_object-csv output-result.txt  ==> Convert CSV file containing Forti Objects to script configuration file\n"
+	echo -e " forticonvert.sh { --address | -a} input_object-csv output-result.txt  ==> Convert CSV file containing Forti Objects to script configuration file\n"
 	echo -e " forticonvert.sh { --interfaces | -i } input_interfaces-csv output-result.txt  ==> Convert CSV file containing Forti Interfaces to script configuration file\n"
 	echo -e " forticonvert.sh { --rules | -r } input_rules-csv output-result.txt  ==> Convert CSV file containing Forti Rules to script configuration file\n"
 	echo -e " forticonvert.sh { --pools | -p } input_ippools-csv output-result.txt  ==> Convert CSV file containing Forti IP Pools to script configuration file\n"
+	echo -e " forticonvert.sh { --vip | -v } input_vip-csv output-result.txt  ==> Convert CSV file containing Forti VIP Objects to script configuration file\n"
 	echo -e " forticonvert.sh { --zones | -z } input_zones-csv output-result.txt  ==> Convert CSV file containing Forti Zones to script configuration file\n"
 	echo -e " forticonvert.sh { --routes | -rtr } input_routes-csv output-result.txt  ==> Convert CSV file containing Forti Static Routes to script configuration file\n"
 	echo -e " forticonvert.sh { --service | -s } input_services-csv output-result.txt  ==> Convert CSV file containing Forti Custom Services to script configuration file\n\n"
@@ -25,7 +26,7 @@ define-vdom()
 	fi
 }
 
-convert-object() 
+convert-address() 
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
@@ -206,6 +207,28 @@ convert-ippools()
 	echo "end" >> $dstfile
 }
 
+convert-vip()
+{
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config firewall vip" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall vip" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
+	IFS=";"
+	sed '1d' $srcfile | while read f1 f2 f3
+	do
+		echo "edit $f1"  >> $dstfile
+		echo "set extip $f2" >> $dstfile
+		echo 'set extintf "any"' >> $dstfile
+		echo "set mappedip $f3" >> $dstfile
+		echo "next" >> $dstfile
+	done
+	echo "end" >> $dstfile
+}
  convert-zones()
 {
 	if [ $enablevdom == "1" ];then
@@ -261,10 +284,11 @@ vdomname=$5
 define-vdom
 case $1 in
 	--help|-h) help;;
-	--object|-o) convert-object;;
+	--address|-a) convert-address;;
 	--rules|-r) convert-rules;;
 	--interfaces|-i) convert-interfaces;;
 	--pools|-p) convert-ippools;;
+	--vip|-v) convert-vip;;
 	--zones|-z) convert-zones;;
 	--routes|-rtr) convert-routes;;
 	--service|-s) convert-services;;
