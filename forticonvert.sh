@@ -229,7 +229,8 @@ convert-vip()
 	done
 	echo "end" >> $dstfile
 }
- convert-zones()
+
+convert-zones()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
@@ -249,27 +250,6 @@ convert-vip()
 		echo "next" >> $dstfile
 		done
 		echo "end" >> $dstfile	
-}
-
-convert-addrgrp()
-{
-	if [ $enablevdom == "1" ];then
-		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
-		echo "config firewall addrgrp" >> $dstfile
-	elif [ $enablevdom == "0" ];then
-		echo "config firewall addrgrp" > $dstfile
-	else
-		echo "BAD VDOM return value, stop" > /dev/null
-	fi
-	IFS=";"
-	sed '1d' $srcfile | while read f1 f2
-	do
-		echo "edit $f1"  >> $dstfile
-		echo "set member $f2" >> $dstfile
-		echo "next" >> $dstfile
-	done
-	echo "end" >> $dstfile	
 }
 
 convert-routes()

@@ -1,0 +1,35 @@
+Some fields in csv files must have mandatory values to be treated by the script.
+Here's the list for each template :
+
+addresses.csv ::
+ - Type can be only : subnet / host or fqdn 
+ - Name should not contains spaces, prefer use of "-" ou "_"
+
+ippools.csv ::
+ - Type can be : overload / one-to-one / fixed-port-range
+ - Internal fields are only required for fixed-port-range type
+
+interfaces.csv ::
+ - Type can be only : aggregate / vlan or interface
+ - VDOM field is mandatory for VLANs and Aggregates
+ - VLANID is mandatory only for VLANs
+ - Members is mandatory only for Aggregate interfaces / each member has to be separated by a space
+
+routes.csv ::
+ - distance and priority are not mandatory (default distance applied by the fortigate is 10)
+ - ID is mandatory
+
+zones.csv ::
+ - members of each zone have to be separated by a space
+
+rules.csv ::
+ - If mulitples sources/destination/services, they must be separated in the same field by a space
+ - ID is mandatory
+ - Values for NAT option can be empty or "enable" only
+ - Schedule is mandatory (always by default)
+ - Values for NAT-POOL have to be the pool name / not mandatory, use only if you want to do nat with a specific pool
+ - Action values can be : allow or deny
+
+vip.csv :: No specific rules for that one
+
+WARNING : If you don't respect theses instructions, script will not work !
