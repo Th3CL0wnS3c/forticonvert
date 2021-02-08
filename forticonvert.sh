@@ -1,9 +1,28 @@
 #!/bin/bash
 
+##########################################################################################################################################################
+#																																						 #
+#	Author: TheCL0wnS3C																																	 #
+#																																						 #
+#   Description : Forticonvert is a bash tool used to convert csv files containing objects,rules or interfaces to fortigate script configuration format  #
+#   Use case : When migration from another brand firewall																								 #
+# 																																						 #
+#   Version = 1.0																																		 #
+#																																						 #
+##########################################################################################################################################################
+
+# Variables
+
+srcfile=$2
+dstfile=$3
+vdomoption=$4
+vdomname=$5
+version="1.0"
+
+# Functions
 help()
 {
-	echo -e "\nForticonvert is a shell tool used to convert csv files containing objects,rules or interfaces to fortigate script configuration format\n"
-	echo -e "Usage : \n"
+	echo -e "\n"
 	echo -e " forticonvert.sh { -help | -h }  ==> Display this help\n"
 	echo -e " forticonvert.sh { --address | -a} input_object-csv output-result.txt  ==> Convert CSV file containing Forti Objects to script configuration file\n"
 	echo -e " forticonvert.sh { --interfaces | -i } input_interfaces-csv output-result.txt  ==> Convert CSV file containing Forti Interfaces to script configuration file\n"
@@ -15,6 +34,7 @@ help()
 	echo -e " forticonvert.sh { --service | -s } input_services-csv output-result.txt  ==> Convert CSV file containing Forti Custom Services to script configuration file\n\n"
 }
 
+# If --vdom VDOM enable is set, set enablevdom var to 1, else set to 0
 define-vdom()
 {
 	if [ ! -z $vdomoption ];then
@@ -28,6 +48,7 @@ define-vdom()
 
 convert-address() 
 {
+	# Check if vdom option has been activated, if so, add vdom config to start of script file, else add only config XX to script file
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
 		echo "edit $vdomname" >> $dstfile
@@ -38,33 +59,46 @@ convert-address()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi	
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3 #f4
+	# the use of tr is aim to remove the 0x0d that windows add when csv cell is empty
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3 f4 f5
 	do
 		case $f1 in
 			"subnet"|"host")
 							echo "edit $f2"  >> $dstfile
 							echo "set type ipmask" >> $dstfile
 	        				echo "set subnet $f3" >> $dstfile
-	        				# Optional Associated interface to object --> Not working
-	        				# if [ -z "$f4" ];then
-	        				# 	echo ""
-	        				# else
-	        				# 	echo "set associated-interface $f4" >> $dstfile
-	        				# fi
+	        				# if associated-interface is empty, proceed else add set ass.. with cell value to script file
+	        				 if [ "$f4" == "" ] ;then
+	        				 	echo "no associated-interface, proceed"  > /dev/null
+	        				 else
+	        				 	echo "set associated-interface $f4" >> $dstfile
+	        				 fi
+	        				# if comment is empty, proceed else add add doubles quotes to value before appening to script file	        				 
+	        				 if [ "$f5" == "" ];then
+	        				 	echo "no object description, proceed" > /dev/null
+	        				 else
+	        				 	echo "set comment $(echo $f5 | sed 's/^/"/;s/$/"/')"  >> $dstfile
+	        				 fi
 	        				echo "next" >> $dstfile;;
 	    	"fqdn") 
 					echo "edit $f2"  >> $dstfile
 	        		echo "set type $f1" >> $dstfile
 	        		echo "set fqdn $f3" >> $dstfile
-	        		# Optional Associated interface to object --> Not working
-	        		# if [ ! -z $f4 ];then
-	        		# 	echo "set associated-interface $f4" >> $dstfile
-	        		# else
-	        		# 	echo "No associated-interface" > /dev/null
-	        		# fi	        		
+	        		# if associated-interface is empty, proceed else add set ass.. with cell value to script file
+	        		if [ "$f4" == "" ] ;then
+	        			echo "no associated-interface, nothing else to do"  > /dev/null
+	        		else
+	        			echo "set associated-interface $f4" >> $dstfile
+	        		fi	        	
+	        		# if comment is empty, proceed else add add doubles quotes to value before appening to script file
+	        		if [ "$f5" == "" ];then
+	        			echo "no object description, proceed" > /dev/null
+	        		else
+	        			echo "set comment $(echo $f5 | sed 's/^/"/;s/$/"/')"  >> $dstfile
+	        		fi	        		
 	        		echo "next" >> $dstfile;;
 			*)
-				echo "$f1 is a Bad type, object not converted" > /dev/null;;
+				echo "$f1 is a Bad type, object not converted" >> errors.log;;
 		esac	
 	done
 	echo "end" >> $dstfile
@@ -82,7 +116,7 @@ convert-services()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3
 	do
 		echo "edit $f1"  >> $dstfile
 		echo "set protocol TCP/UDP/SCTP" >> $dstfile
@@ -91,7 +125,7 @@ convert-services()
 		elif [ "$f2 == ¨UDP" ];then
 			echo "set udp-portrange $f3" >> $dstfile
 		else
-			echo "Value not available" > /dev/null
+			echo "Value $f2 not available" >> errors.log
 		fi
 		echo "next" >> $dstfile
 	done
@@ -110,7 +144,7 @@ convert-rules()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6 f7 f8 f9 f10
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11
 	do
 		echo "	edit $f1"  >> $dstfile
 		echo "		set srcintf $f2" >> $dstfile
@@ -119,6 +153,7 @@ convert-rules()
 		echo "		set dstaddr $f5" >> $dstfile
 		echo "		set service $f6" >> $dstfile
 		echo "		set schedule $f7" >> $dstfile
+		# Check if nat cell is empty, proceed to next action, else echo nat enable in script file, then check if there is a ippool value, if so add pool options to rule in script file, else proceed to next action	
 		if [ "$f8" == "enable" ];then
 		echo "		set nat enable" >> $dstfile
 			if [ ! -z $f9 ]; then
@@ -129,6 +164,12 @@ convert-rules()
 			fi
 		else
 			echo "Nat disabled by default" > /dev/null
+		fi
+		# Check if name cell is empty, proceed to next action, else add double quotes to name then appened value to script file		
+		if [[ "$f11" == "" ]];then
+			echo "No name given for the rule, skipping" > /dev/null
+		else
+			echo "		set name $(echo $f11 | sed 's/^/"/;s/$/"/')" >> $dstfile
 		fi
 		echo "		set action $f10" >> $dstfile
 		echo "		next" >> $dstfile
@@ -148,7 +189,7 @@ convert-interfaces()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6 f7
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3 f4 f5 f6 f7
 	do
 		case $f1 in 
 			"interface")
@@ -171,7 +212,7 @@ convert-interfaces()
 	        	echo "set vdom $f6" >> $dstfile
 	        	echo "next" >> $dstfile;;
 	    	*) 
-				echo "$f1 is a Bad type, interface not converted"> /dev/null;;
+				echo "$f1 is a Bad type, interface not converted" >> errors.log;;
 		esac
 
 	done
@@ -190,7 +231,7 @@ convert-ippools()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6 
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3 f4 f5 f6 
 	do
 		echo "edit $f1"  >> $dstfile
 		echo "set type $f2" >> $dstfile
@@ -219,7 +260,7 @@ convert-vip()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3
 	do
 		echo "edit $f1"  >> $dstfile
 		echo "set extip $f2" >> $dstfile
@@ -242,7 +283,7 @@ convert-zones()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3  
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3  
 	do
 		echo "edit $f1"  >> $dstfile
 		echo "set interface $f2" >> $dstfile
@@ -264,12 +305,13 @@ convert-routes()
 		echo "BAD VDOM return value, stop" > /dev/null
 	fi
 	IFS=";"
-	sed '1d' $srcfile | while read f1 f2 f3 f4 f5 f6
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3 f4 f5 f6
 	do
 		echo "edit $f1"  >> $dstfile
 		echo "set dst $f2" >> $dstfile
 		echo "set gateway $f3" >> $dstfile
 		echo "set device $f4" >> $dstfile
+		# If distance and/or priority value is a number, add corresponding lines to script file, else do not set it
 		if [[ "$f5" == *[0-9]* ]];then
 				echo "set distance $f5" >> $dstfile
 		else
@@ -285,10 +327,8 @@ convert-routes()
 		echo "end" >> $dstfile
 }
 
-srcfile=$2
-dstfile=$3
-vdomoption=$4
-vdomname=$5
+
+# Main 
 
 define-vdom
 case $1 in
@@ -302,6 +342,7 @@ case $1 in
 	--zones|-z) convert-zones;;
 	--routes|-rtr) convert-routes;;
 	--service|-s) convert-services;;
+	--version) echo -e "forticonvert v$version\n";;
 	*) echo -e "Bad Option, please retry (use -h or --help to display usage\n";;
 esac
 

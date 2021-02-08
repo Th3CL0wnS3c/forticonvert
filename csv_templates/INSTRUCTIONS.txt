@@ -4,6 +4,7 @@ Here's the list for each template :
 addresses.csv ::
  - Type can be only : subnet / host or fqdn 
  - Name should not contains spaces, prefer use of "-" ou "_"
+ - comment is optionnal
 
 ippools.csv ::
  - Type can be : overload / one-to-one / fixed-port-range
@@ -29,6 +30,7 @@ rules.csv ::
  - Schedule is mandatory (always by default)
  - Values for NAT-POOL have to be the pool name / not mandatory, use only if you want to do nat with a specific pool
  - Action values can be : allow or deny
+ - Name is optionnal
 
 vip.csv :: No specific rules for that one
 
