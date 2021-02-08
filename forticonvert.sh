@@ -251,6 +251,27 @@ convert-vip()
 		echo "end" >> $dstfile	
 }
 
+convert-addrgrp()
+{
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $vdomname" >> $dstfile
+		echo "config firewall addrgrp" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall addrgrp" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
+	IFS=";"
+	sed '1d' $srcfile | while read f1 f2
+	do
+		echo "edit $f1"  >> $dstfile
+		echo "set member $f2" >> $dstfile
+		echo "next" >> $dstfile
+	done
+	echo "end" >> $dstfile	
+}
+
 convert-routes()
 {
 	if [ $enablevdom == "1" ];then
@@ -269,8 +290,16 @@ convert-routes()
 		echo "set dst $f2" >> $dstfile
 		echo "set gateway $f3" >> $dstfile
 		echo "set device $f4" >> $dstfile
-		echo "set distance $f5" >> $dstfile
-		echo "set priority $f6" >> $dstfile
+		if [[ "$f5" == *[0-9]* ]];then
+				echo "set distance $f5" >> $dstfile
+		else
+				echo "distance not set" > /dev/null
+		fi		
+		if [[ "$f6" == *[0-9]* ]];then
+				echo "set priority $f6" >> $dstfile
+		else
+				echo "priority not set" > /dev/null
+		fi
 		echo "next" >> $dstfile
 		done
 		echo "end" >> $dstfile
@@ -285,6 +314,7 @@ define-vdom
 case $1 in
 	--help|-h) help;;
 	--address|-a) convert-address;;
+	--address-group|-agrp) convert-addrgrp;;
 	--rules|-r) convert-rules;;
 	--interfaces|-i) convert-interfaces;;
 	--pools|-p) convert-ippools;;
