@@ -39,9 +39,9 @@ forticonvert.sh { --vip | -v } input_vip-csv output-result.txt  ==> Convert CSV 
 forticonvert.sh { --zones | -z } input_zones-csv output-result.txt  ==> Convert CSV file containing Forti Zones to script configuration file
 forticonvert.sh { --routes | -rtr } input_routes-csv output-result.txt  ==> Convert CSV file containing Forti Static Routes to script configuration file
 forticonvert.sh { --service | -s } input_services-csv output-result.txt  ==> Convert CSV file containing Forti Custom Services to script configuration file
-forticonvert.sh { --service | -s } input_services-group-csv output-result.txt  ==> Convert CSV file containing Forti  Services Group to script configuration file
+forticonvert.sh { --service-group | -sgrp } input_services-group-csv output-result.txt  ==> Convert CSV file containing Forti  Services Group to script configuration file
 
-Add --vdom VDOM_NAME at the end of the command to convert configuration for specific vdom (VDOM_NAME has to be case sensitive)
+Add --vdom VDOM_NAME at the end of the command to convert configuration for specific vdom (VDOM_NAME has to be case sensitive => Space are forbidden in VDOM NAME, prefer use of - or _)
 ```
 
 Demo Video : Available soon
