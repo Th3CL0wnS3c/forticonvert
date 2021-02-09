@@ -12,7 +12,9 @@ Available configurations for convertion :
 - zones
 - static routes
 - addresses
+- adresses groups
 - custom services
+- services groups
 - ip pools
 - VIP
 - rules (filtering policy)
@@ -29,6 +31,7 @@ cd forticonvert && chmod a+x forticonvert.sh
 ```
 forticonvert.sh { -help | -h }  ==> Display this help
 forticonvert.sh { --address | -a} input_addresses-csv output-result.txt  ==> Convert CSV file containing Forti Objects to script configuration file
+forticonvert.sh { --address-group | -agrp } input_address-group-csv output-result.txt  ==> Convert CSV file containing Forti Adresses Groups to script configuration fil
 forticonvert.sh { --interfaces | -i } input_interfaces-csv output-result.txt  ==> Convert CSV file containing Forti Interfaces to script configuration file
 forticonvert.sh { --rules | -r } input_rules-csv output-result.txt  ==> Convert CSV file containing Forti Rules to script configuration file
 forticonvert.sh { --pools | -p } input_ippools-csv output-result.txt  ==> Convert CSV file containing Forti IP Pools to script configuration file
@@ -36,6 +39,7 @@ forticonvert.sh { --vip | -v } input_vip-csv output-result.txt  ==> Convert CSV 
 forticonvert.sh { --zones | -z } input_zones-csv output-result.txt  ==> Convert CSV file containing Forti Zones to script configuration file
 forticonvert.sh { --routes | -rtr } input_routes-csv output-result.txt  ==> Convert CSV file containing Forti Static Routes to script configuration file
 forticonvert.sh { --service | -s } input_services-csv output-result.txt  ==> Convert CSV file containing Forti Custom Services to script configuration file
+forticonvert.sh { --service | -s } input_services-group-csv output-result.txt  ==> Convert CSV file containing Forti  Services Group to script configuration file
 
 Add --vdom VDOM_NAME at the end of the command to convert configuration for specific vdom (VDOM_NAME has to be case sensitive)
 ```

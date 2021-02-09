@@ -24,14 +24,16 @@ help()
 {
 	echo -e "\n"
 	echo -e " forticonvert.sh { -help | -h }  ==> Display this help\n"
-	echo -e " forticonvert.sh { --address | -a} input_object-csv output-result.txt  ==> Convert CSV file containing Forti Objects to script configuration file\n"
+	echo -e " forticonvert.sh { --address | -a} input_address-csv output-result.txt  ==> Convert CSV file containing Forti Addresses to script configuration file\n"
+	echo -e " forticonvert.sh { --address-group | -agrp } input_address-group-csv output-result.txt  ==> Convert CSV file containing Forti Adresses Groups to script configuration file\n"
 	echo -e " forticonvert.sh { --interfaces | -i } input_interfaces-csv output-result.txt  ==> Convert CSV file containing Forti Interfaces to script configuration file\n"
 	echo -e " forticonvert.sh { --rules | -r } input_rules-csv output-result.txt  ==> Convert CSV file containing Forti Rules to script configuration file\n"
 	echo -e " forticonvert.sh { --pools | -p } input_ippools-csv output-result.txt  ==> Convert CSV file containing Forti IP Pools to script configuration file\n"
 	echo -e " forticonvert.sh { --vip | -v } input_vip-csv output-result.txt  ==> Convert CSV file containing Forti VIP Objects to script configuration file\n"
 	echo -e " forticonvert.sh { --zones | -z } input_zones-csv output-result.txt  ==> Convert CSV file containing Forti Zones to script configuration file\n"
 	echo -e " forticonvert.sh { --routes | -rtr } input_routes-csv output-result.txt  ==> Convert CSV file containing Forti Static Routes to script configuration file\n"
-	echo -e " forticonvert.sh { --service | -s } input_services-csv output-result.txt  ==> Convert CSV file containing Forti Custom Services to script configuration file\n\n"
+	echo -e " forticonvert.sh { --service | -s } input_services-csv output-result.txt  ==> Convert CSV file containing Forti Custom Services to script configuration file\n"
+	echo -e " forticonvert.sh { --service | -s } input_services-group-csv output-result.txt  ==> Convert CSV file containing Forti  Services Group to script configuration file\n\n"
 }
 
 # If --vdom VDOM enable is set, set enablevdom var to 1, else set to 0
@@ -51,7 +53,7 @@ convert-address()
 	# Check if vdom option has been activated, if so, add vdom config to start of script file, else add only config XX to script file
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config firewall address" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config firewall address" > $dstfile
@@ -64,7 +66,8 @@ convert-address()
 	do
 		case $f1 in
 			"subnet"|"host")
-							echo "edit $f2"  >> $dstfile
+							# sed used to add double quotes to name
+							echo "edit $(echo $f2 | sed 's/^/"/;s/$/"/')"  >> $dstfile
 							echo "set type ipmask" >> $dstfile
 	        				echo "set subnet $f3" >> $dstfile
 	        				# if associated-interface is empty, proceed else add set ass.. with cell value to script file
@@ -81,7 +84,7 @@ convert-address()
 	        				 fi
 	        				echo "next" >> $dstfile;;
 	    	"fqdn") 
-					echo "edit $f2"  >> $dstfile
+					echo "edit  $(echo $f2 | sed 's/^/"/;s/$/"/')"  >> $dstfile
 	        		echo "set type $f1" >> $dstfile
 	        		echo "set fqdn $f3" >> $dstfile
 	        		# if associated-interface is empty, proceed else add set ass.. with cell value to script file
@@ -108,7 +111,7 @@ convert-services()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config firewall service custom" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config firewall service custom" > $dstfile
@@ -118,7 +121,7 @@ convert-services()
 	IFS=";"
 	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3
 	do
-		echo "edit $f1"  >> $dstfile
+		echo "edit $(echo $f1 | sed 's/^/"/;s/$/"/')"  >> $dstfile
 		echo "set protocol TCP/UDP/SCTP" >> $dstfile
 		if [ "$f2" == "TCP" ];then
 			echo "set tcp-portrange $f3" >> $dstfile
@@ -136,7 +139,7 @@ convert-rules()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config firewall policy" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config firewall policy" > $dstfile
@@ -147,18 +150,18 @@ convert-rules()
 	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11
 	do
 		echo "	edit $f1"  >> $dstfile
-		echo "		set srcintf $f2" >> $dstfile
-		echo "		set dstintf $f3" >> $dstfile
-    	echo "		set srcaddr $f4" >> $dstfile
-		echo "		set dstaddr $f5" >> $dstfile
-		echo "		set service $f6" >> $dstfile
+		echo "		set srcintf $(echo $f2 | sed 's/^/"/;s/$/"/')" >> $dstfile
+		echo "		set dstintf $(echo $f3 | sed 's/^/"/;s/$/"/')" >> $dstfile
+    	echo "		set srcaddr $(echo $f4 | awk -vOFS=' ' '{for (k=1; k<=NF; ++k) $k="\""$k"\""; print}')" >> $dstfile
+		echo "		set dstaddr $(echo $f5 | awk -vOFS=' ' '{for (k=1; k<=NF; ++k) $k="\""$k"\""; print}')" >> $dstfile
+		echo "		set service $(echo $f6 | awk -vOFS=' ' '{for (k=1; k<=NF; ++k) $k="\""$k"\""; print}')" >> $dstfile
 		echo "		set schedule $f7" >> $dstfile
 		# Check if nat cell is empty, proceed to next action, else echo nat enable in script file, then check if there is a ippool value, if so add pool options to rule in script file, else proceed to next action	
 		if [ "$f8" == "enable" ];then
 		echo "		set nat enable" >> $dstfile
 			if [ ! -z $f9 ]; then
 				echo "		set ippool enable" >> $dstfile
-				echo "		set poolname $f9" >> $dstfile
+				echo "		set poolname $(echo $f9 | sed 's/^/"/;s/$/"/')" >> $dstfile
 			else
 				echo "Default outgoing pool by default" >> /dev/null
 			fi
@@ -181,7 +184,7 @@ convert-interfaces()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config system interface" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config system interface" > $dstfile
@@ -193,22 +196,22 @@ convert-interfaces()
 	do
 		case $f1 in 
 			"interface")
-	       		echo "edit $f2"  >> $dstfile
+	       		echo "edit $(echo $f2 | sed 's/^/"/;s/$/"/')"  >> $dstfile
 	        	echo "set mode static" >> $dstfile
 				echo "set ip $f3" >> $dstfile
 				echo "next" >> $dstfile;;
 			"vlan")
-				echo "edit $f2"  >> $dstfile
+				echo "edit $(echo $f2 | sed 's/^/"/;s/$/"/')"  >> $dstfile
 	        	echo "set type $f1" >> $dstfile
 	       		echo "set ip $f3" >> $dstfile
 	        	echo "set vlanid $f7" >> $dstfile
 	        	echo "set vdom $f6" >> $dstfile
-	        	echo "set interface $f5" >> $dstfile
+	        	echo "set interface (echo $f5 | sed 's/^/"/;s/$/"/')" >> $dstfile
 	        	echo "next" >> $dstfile;;
 	     	"aggregate")
-				echo "edit $f2" >> $dstfile
+				echo "edit $(echo $f2 | sed 's/^/"/;s/$/"/')" >> $dstfile
 	        	echo "set type $f1" >> $dstfile
-	        	echo "set member $f4" >> $dstfile
+	        	echo "set member $(echo $f4 | awk -vOFS=' ' '{for (k=1; k<=NF; ++k) $k="\""$k"\""; print}')" >> $dstfile
 	        	echo "set vdom $f6" >> $dstfile
 	        	echo "next" >> $dstfile;;
 	    	*) 
@@ -223,7 +226,7 @@ convert-ippools()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config firewall ippool" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config firewall ippool" > $dstfile
@@ -233,7 +236,7 @@ convert-ippools()
 	IFS=";"
 	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3 f4 f5 f6 
 	do
-		echo "edit $f1"  >> $dstfile
+		echo "edit $(echo $f1 | sed 's/^/"/;s/$/"/')"  >> $dstfile
 		echo "set type $f2" >> $dstfile
 		echo "set startip $f3" >> $dstfile
 		echo "set endip $f4" >> $dstfile
@@ -252,7 +255,7 @@ convert-vip()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config firewall vip" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config firewall vip" > $dstfile
@@ -262,7 +265,7 @@ convert-vip()
 	IFS=";"
 	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3
 	do
-		echo "edit $f1"  >> $dstfile
+		echo "edit $(echo $f1 | sed 's/^/"/;s/$/"/')"  >> $dstfile
 		echo "set extip $f2" >> $dstfile
 		echo 'set extintf "any"' >> $dstfile
 		echo "set mappedip $f3" >> $dstfile
@@ -275,7 +278,7 @@ convert-zones()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config system zone" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config system zone" > $dstfile
@@ -285,8 +288,8 @@ convert-zones()
 	IFS=";"
 	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2 f3  
 	do
-		echo "edit $f1"  >> $dstfile
-		echo "set interface $f2" >> $dstfile
+		echo "edit $(echo $f1 | sed 's/^/"/;s/$/"/')"  >> $dstfile
+		echo "set interface $(echo $f2 | awk -vOFS=' ' '{for (k=1; k<=NF; ++k) $k="\""$k"\""; print}')" >> $dstfile
 		echo "set intrazone $f3" >> $dstfile
 		echo "next" >> $dstfile
 		done
@@ -297,7 +300,7 @@ convert-routes()
 {
 	if [ $enablevdom == "1" ];then
 		echo "config vdom" > $dstfile
-		echo "edit $vdomname" >> $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
 		echo "config router static" >> $dstfile
 	elif [ $enablevdom == "0" ];then
 		echo "config router static" > $dstfile
@@ -310,7 +313,7 @@ convert-routes()
 		echo "edit $f1"  >> $dstfile
 		echo "set dst $f2" >> $dstfile
 		echo "set gateway $f3" >> $dstfile
-		echo "set device $f4" >> $dstfile
+		echo "set device $(echo $f4 | sed 's/^/"/;s/$/"/')" >> $dstfile
 		# If distance and/or priority value is a number, add corresponding lines to script file, else do not set it
 		if [[ "$f5" == *[0-9]* ]];then
 				echo "set distance $f5" >> $dstfile
@@ -327,6 +330,47 @@ convert-routes()
 		echo "end" >> $dstfile
 }
 
+convert-addrgrp()
+{
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
+		echo "config firewall addrgrp" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall addrgrp" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
+	IFS=";"
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2  
+	do
+		echo "edit $(echo $f1 | sed 's/^/"/;s/$/"/')"  >> $dstfile
+		echo "set member $(echo $f2 | awk -vOFS=' ' '{for (k=1; k<=NF; ++k) $k="\""$k"\""; print}')" >> $dstfile
+		echo "next" >> $dstfile
+	done
+		echo "end" >> $dstfile		
+}
+
+convert-servicesgrp()
+{
+	if [ $enablevdom == "1" ];then
+		echo "config vdom" > $dstfile
+		echo "edit $(echo $vdomname | sed 's/^/"/;s/$/"/')" >> $dstfile
+		echo "config firewall service group" >> $dstfile
+	elif [ $enablevdom == "0" ];then
+		echo "config firewall service group" > $dstfile
+	else
+		echo "BAD VDOM return value, stop" > /dev/null
+	fi
+	IFS=";"
+	tr -d '\r' < $srcfile | sed '1d' | while read f1 f2  
+	do
+		echo "edit $(echo $f1 | sed 's/^/"/;s/$/"/')"  >> $dstfile
+		echo "set member $(echo $f2 | awk -vOFS=' ' '{for (k=1; k<=NF; ++k) $k="\""$k"\""; print}')" >> $dstfile
+		echo "next" >> $dstfile
+	done
+		echo "end" >> $dstfile	
+}
 
 # Main 
 
@@ -342,6 +386,7 @@ case $1 in
 	--zones|-z) convert-zones;;
 	--routes|-rtr) convert-routes;;
 	--service|-s) convert-services;;
+	--service-group|-sgrp) convert-servicesgrp;;
 	--version) echo -e "forticonvert v$version\n";;
 	*) echo -e "Bad Option, please retry (use -h or --help to display usage\n";;
 esac
