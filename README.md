@@ -1,3 +1,7 @@
+Old project, not up-do-date. Will be redone when got time to do it.
+
+Use at your own risk.
+
 # forticonvert
 
 Forticonvert is a bash tool to convert CSV files containing fortigate configuration such as static routes, filter policy...
